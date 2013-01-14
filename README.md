@@ -3,7 +3,8 @@ GoStatsd
 
 [![Build Status](https://travis-ci.org/stvp/gostatsd.png)](https://travis-ci.org/stvp/gostatsd)
 
-GoStatsd is a simple Statsd client package for Go.
+GoStatsd is a simple Statsd client package for Go. It supports all commands
+supported by the [etsy/statsd](https://github.com/etsy/statsd/) project.
 
 Usage
 -----
@@ -32,6 +33,4 @@ TODO
 ----
 
 * Support buffering and sending as 512 byte packets
-* Support "extra" stats methods provided by different Statsd servers like
-  Sets
 

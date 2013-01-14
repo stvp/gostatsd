@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -13,10 +14,13 @@ const (
 	MAX_PACKET_SIZE = 8932 // or 512 if you're going over the open internet
 )
 
+var nonAlphaNum, _ = regexp.Compile("[^\\w]+")
+
 type StatsReporter interface {
 	Count(bucket string, value int, sampleRate float32)
 	Gauge(bucket string, value float32)
 	Timing(bucket string, value time.Duration)
+	CountUnique(bucket string, value string)
 }
 
 type statsdClient struct {
@@ -32,6 +36,7 @@ type emptyClient struct{}
 func (c emptyClient) Count(string, int, float32)   {}
 func (c emptyClient) Gauge(string, float32)        {}
 func (c emptyClient) Timing(string, time.Duration) {}
+func (c emptyClient) CountUnique(string, string)   {}
 
 // New connects to the given Statsd server and, optionally, uses the given
 // prefix for all metric bucket names. If the prefix is "foo.bar.", a call to
@@ -46,14 +51,14 @@ func New(host string, prefix string) (StatsReporter, error) {
 	return &statsdClient{writer: connection, Prefix: prefix}, nil
 }
 
-func (c *statsdClient) record(sampleRate float32, bucket string, delta float32, kind string) {
+func (c *statsdClient) record(sampleRate float32, bucket string, value interface{}, kind string) {
 	if sampleRate < 1 && sampleRate <= rand.Float32() {
 		return
 	}
-	if sampleRate != 1 {
-		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.Prefix, bucket, delta, kind, sampleRate))
+	if sampleRate == 1 {
+		c.send(fmt.Sprintf("%s%s:%v|%s", c.Prefix, bucket, value, kind))
 	} else {
-		c.send(fmt.Sprintf("%s%s:%v|%s", c.Prefix, bucket, delta, kind))
+		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.Prefix, bucket, value, kind, sampleRate))
 	}
 }
 
@@ -83,4 +88,10 @@ func (c *statsdClient) Count(bucket string, value int, sampleRate float32) {
 // bounds are calculated by the Statsd server.
 func (c *statsdClient) Timing(bucket string, value time.Duration) {
 	c.record(1, bucket, float32(value/time.Millisecond), "ms")
+}
+
+// Unique records the number of unique values received between flushes using
+// Statsd Sets.
+func (c *statsdClient) CountUnique(bucket string, value string) {
+	c.record(1, bucket, nonAlphaNum.ReplaceAllString(value, "_"), "s")
 }

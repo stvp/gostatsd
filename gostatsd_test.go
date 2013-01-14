@@ -92,3 +92,12 @@ func TestTiming(t *testing.T) {
 		goodClient("").Timing("bukkit", 250*time.Second)
 	})
 }
+
+func TestCountUnique(t *testing.T) {
+	expectMessage(t, "bukkit:foo|s", func() {
+		goodClient("").CountUnique("bukkit", "foo")
+	})
+	expectMessage(t, "bukkit:foo_bar_1_baz_biz|s", func() {
+		goodClient("").CountUnique("bukkit", "foo:bar -1- baz|biz")
+	})
+}

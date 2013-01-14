@@ -9,8 +9,13 @@ supported by the [etsy/statsd](https://github.com/etsy/statsd/) project.
 Usage
 -----
 
+GoStatsd buffers up to 512 bytes of data before sending a UDP packet. This means
+that you need to manually call `Flush()` after you're done recording your stats
+to send any remaining stats.
+
 ```go
 client := statsd.New("127.0.0.1:8125", "some.prefix.")
+defer client.Flush()
 
 // Counters
 for i := 0; i < 10000; i++ {
@@ -28,9 +33,4 @@ start := time.Now()
 // ...
 client.Timing("methodtime", time.Since(start))
 ```
-
-TODO
-----
-
-* Support buffering and sending as 512 byte packets
 

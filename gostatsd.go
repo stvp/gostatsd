@@ -1,6 +1,7 @@
 package statsd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -11,12 +12,13 @@ import (
 )
 
 const (
-	MAX_PACKET_SIZE = 8932 // or 512 if you're going over the open internet
+	MAX_PACKET_SIZE = 512
 )
 
 var nonAlphaNum, _ = regexp.Compile("[^\\w]+")
 
 type StatsReporter interface {
+	Flush() error
 	Count(bucket string, value int, sampleRate float32)
 	Gauge(bucket string, value float32)
 	Timing(bucket string, value time.Duration)
@@ -24,15 +26,17 @@ type StatsReporter interface {
 }
 
 type statsdClient struct {
-	Prefix string
+	prefix string
 	writer io.Writer
 	mutex  sync.Mutex
+	buffer bytes.Buffer
 }
 
 // If New() can't resolve the domain name, it will return an emptyClient (and
 // an error) so that all statsd functions will no-op.
 type emptyClient struct{}
 
+func (c emptyClient) Flush() error                 { return nil }
 func (c emptyClient) Count(string, int, float32)   {}
 func (c emptyClient) Gauge(string, float32)        {}
 func (c emptyClient) Timing(string, time.Duration) {}
@@ -48,26 +52,50 @@ func New(host string, prefix string) (StatsReporter, error) {
 	if err != nil {
 		return &emptyClient{}, err
 	}
-	return &statsdClient{writer: connection, Prefix: prefix}, nil
+	return &statsdClient{writer: connection, prefix: prefix}, nil
 }
 
 func (c *statsdClient) record(sampleRate float32, bucket string, value interface{}, kind string) {
 	if sampleRate < 1 && sampleRate <= rand.Float32() {
 		return
 	}
+
 	if sampleRate == 1 {
-		c.send(fmt.Sprintf("%s%s:%v|%s", c.Prefix, bucket, value, kind))
+		c.send(fmt.Sprintf("%s%s:%v|%s", c.prefix, bucket, value, kind))
 	} else {
-		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.Prefix, bucket, value, kind, sampleRate))
+		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.prefix, bucket, value, kind, sampleRate))
 	}
 }
 
 func (c *statsdClient) send(data string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	_, err := c.writer.Write([]byte(data))
-	if err != nil {
-		return err
+
+	// Flush buffer if needed
+	if c.buffer.Len()+len(data)+1 >= MAX_PACKET_SIZE {
+		err := c.Flush()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Add to buffer
+	if c.buffer.Len() > 0 {
+		c.buffer.WriteRune('\n')
+	}
+	c.buffer.WriteString(data)
+
+	return nil
+}
+
+// Sends all buffered data, if any.
+func (c *statsdClient) Flush() error {
+	if c.buffer.Len() > 0 {
+		_, err := c.writer.Write(c.buffer.Bytes())
+		if err != nil {
+			return err
+		}
+		c.buffer.Reset()
 	}
 	return nil
 }

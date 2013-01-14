@@ -19,20 +19,26 @@ type fn func()
 // Expect to receive the given message on UDP port 8125 while running the given
 // func.
 func expectMessage(t *testing.T, expected string, body fn) {
-	result := make(chan string)
-	go func() {
-		message := make([]byte, 512)
-		n, _, err := listener.ReadFrom(message)
-		if err != nil {
-			t.Fatal(err)
-		}
-		result <- string(message[0:n])
-	}()
-	body()
-	got := <-result
+	got := getMessage(body)
+
+	// Check the actual received bytes
 	if got != expected {
 		t.Errorf("Expected %#v but got %#v instead.", expected, got)
 	}
+}
+
+// Get the UDP data received on port 8125 while running the given function.
+func getMessage(body fn) string {
+	result := make(chan string)
+	go func() {
+		message := make([]byte, 1024)
+		n, _, _ := listener.ReadFrom(message)
+		result <- string(message[0:n])
+	}()
+
+	body()
+
+	return <-result
 }
 
 // Return a valid client that sends messages to the server set up above.
@@ -67,37 +73,89 @@ func TestGoodConnection(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	expectMessage(t, "bukkit:2|c", func() {
-		goodClient("").Count("bukkit", 2, 1)
+		client := goodClient("")
+		client.Count("bukkit", 2, 1)
+		client.Flush()
 	})
 	expectMessage(t, "bukkit:-10|c", func() {
-		goodClient("").Count("bukkit", -10, 1)
+		client := goodClient("")
+		client.Count("bukkit", -10, 1)
+		client.Flush()
 	})
 	// TODO: How can we stub rand.Float32()
 	expectMessage(t, "bukkit:1|c|@0.999999", func() {
-		goodClient("").Count("bukkit", 1, 0.999999)
+		client := goodClient("")
+		client.Count("bukkit", 1, 0.999999)
+		client.Flush()
 	})
 }
 
-func TestNamespace(t *testing.T) {
+func TestPrefix(t *testing.T) {
 	expectMessage(t, "dude.cool.bukkit:1|c", func() {
-		goodClient("dude.").Count("cool.bukkit", 1, 1)
+		client := goodClient("dude.")
+		client.Count("cool.bukkit", 1, 1)
+		client.Flush()
 	})
 }
 
 func TestTiming(t *testing.T) {
 	expectMessage(t, "bukkit:250|ms", func() {
-		goodClient("").Timing("bukkit", 250*time.Millisecond)
+		client := goodClient("")
+		client.Timing("bukkit", 250*time.Millisecond)
+		client.Flush()
 	})
 	expectMessage(t, "bukkit:250000|ms", func() {
-		goodClient("").Timing("bukkit", 250*time.Second)
+		client := goodClient("")
+		client.Timing("bukkit", 250*time.Second)
+		client.Flush()
 	})
 }
 
 func TestCountUnique(t *testing.T) {
 	expectMessage(t, "bukkit:foo|s", func() {
-		goodClient("").CountUnique("bukkit", "foo")
+		client := goodClient("")
+		client.CountUnique("bukkit", "foo")
+		client.Flush()
 	})
 	expectMessage(t, "bukkit:foo_bar_1_baz_biz|s", func() {
-		goodClient("").CountUnique("bukkit", "foo:bar -1- baz|biz")
+		client := goodClient("")
+		client.CountUnique("bukkit", "foo:bar -1- baz|biz")
+		client.Flush()
 	})
+}
+
+func TestBuffer(t *testing.T) {
+	expectMessage(t, "a:1|c\nb:2|c\nc:3|c", func() {
+		client := goodClient("")
+		client.Count("a", 1, 1)
+		client.Count("b", 2, 1)
+		client.Count("c", 3, 1)
+		client.Flush()
+	})
+
+	largePacket := `four.score.and.seven.years.ago:0|c
+four.score.and.seven.years.ago:1|c
+four.score.and.seven.years.ago:2|c
+four.score.and.seven.years.ago:3|c
+four.score.and.seven.years.ago:4|c
+four.score.and.seven.years.ago:5|c
+four.score.and.seven.years.ago:6|c
+four.score.and.seven.years.ago:7|c
+four.score.and.seven.years.ago:8|c
+four.score.and.seven.years.ago:9|c
+four.score.and.seven.years.ago:10|c
+four.score.and.seven.years.ago:11|c
+four.score.and.seven.years.ago:12|c
+four.score.and.seven.years.ago:13|c`
+	message := getMessage(func() {
+		client := goodClient("")
+		for i := 0; i < 16; i++ {
+			client.Count("four.score.and.seven.years.ago", i, 1)
+		}
+		client.Flush()
+	})
+	if message != largePacket {
+		t.Errorf("Expected %d bytes, but got %d", len(largePacket), len(message))
+		t.Error(message)
+	}
 }

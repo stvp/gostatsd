@@ -24,8 +24,8 @@ var nonAlphaNum, _ = regexp.Compile("[^\\w]+")
 
 type StatsReporter interface {
 	Flush() error
-	Count(bucket string, value int, sampleRate float32)
-	Gauge(bucket string, value float32)
+	Count(bucket string, value int, sampleRate float64)
+	Gauge(bucket string, value float64)
 	Timing(bucket string, value time.Duration)
 	CountUnique(bucket string, value string)
 }
@@ -42,8 +42,8 @@ type statsdClient struct {
 type emptyClient struct{}
 
 func (c emptyClient) Flush() error                 { return nil }
-func (c emptyClient) Count(string, int, float32)   {}
-func (c emptyClient) Gauge(string, float32)        {}
+func (c emptyClient) Count(string, int, float64)   {}
+func (c emptyClient) Gauge(string, float64)        {}
 func (c emptyClient) Timing(string, time.Duration) {}
 func (c emptyClient) CountUnique(string, string)   {}
 
@@ -60,8 +60,8 @@ func New(host string, prefix string) (StatsReporter, error) {
 	return &statsdClient{writer: connection, prefix: prefix}, nil
 }
 
-func (c *statsdClient) record(sampleRate float32, bucket string, value interface{}, kind string) {
-	if sampleRate < 1 && sampleRate <= rand.Float32() {
+func (c *statsdClient) record(sampleRate float64, bucket string, value interface{}, kind string) {
+	if sampleRate < 1 && sampleRate <= rand.Float64() {
 		return
 	}
 
@@ -107,21 +107,21 @@ func (c *statsdClient) Flush() error {
 
 // Gauge sets an arbitrary value. Only the value of the gauge at flush time is
 // stored by statsd.
-func (c *statsdClient) Gauge(bucket string, value float32) {
+func (c *statsdClient) Gauge(bucket string, value float64) {
 	c.record(1, bucket, value, "g")
 }
 
 // Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
-func (c *statsdClient) Count(bucket string, value int, sampleRate float32) {
-	c.record(sampleRate, bucket, float32(value), "c")
+func (c *statsdClient) Count(bucket string, value int, sampleRate float64) {
+	c.record(sampleRate, bucket, float64(value), "c")
 }
 
 // Timing records a time interval (in milliseconds). The percentiles, mean,
 // standard deviation, sum, and lower and upper bounds are calculated by the
 // Statsd server.
 func (c *statsdClient) Timing(bucket string, value time.Duration) {
-	c.record(1, bucket, float32(value/time.Millisecond), "ms")
+	c.record(1, bucket, float64(value/time.Millisecond), "ms")
 }
 
 // Unique records the number of unique values received between flushes using

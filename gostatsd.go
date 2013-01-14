@@ -1,3 +1,8 @@
+/*
+GoStatsd is a simple Statsd client package for Go. It supports all commands
+supported by the etsy/statsd (https://github.com/etsy/statsd/) project and
+automatically buffers stats into 512 byte packets.
+*/
 package statsd
 
 import (
@@ -100,20 +105,21 @@ func (c *statsdClient) Flush() error {
 	return nil
 }
 
-// Gauge sets an arbitrary value.
+// Gauge sets an arbitrary value. Only the value of the gauge at flush time is
+// stored by statsd.
 func (c *statsdClient) Gauge(bucket string, value float32) {
 	c.record(1, bucket, value, "g")
 }
 
-// Count increments (or decrements the value in a counter). Counters are
+// Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
 func (c *statsdClient) Count(bucket string, value int, sampleRate float32) {
 	c.record(sampleRate, bucket, float32(value), "c")
 }
 
-// Timing records a time interval (in milliseconds). The
-// percentiles, mean, standard deviation, sum, and lower and upper
-// bounds are calculated by the Statsd server.
+// Timing records a time interval (in milliseconds). The percentiles, mean,
+// standard deviation, sum, and lower and upper bounds are calculated by the
+// Statsd server.
 func (c *statsdClient) Timing(bucket string, value time.Duration) {
 	c.record(1, bucket, float32(value/time.Millisecond), "ms")
 }

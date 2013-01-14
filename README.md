@@ -4,7 +4,10 @@ GoStatsd
 [![Build Status](https://travis-ci.org/stvp/gostatsd.png?branch=master)](https://travis-ci.org/stvp/gostatsd)
 
 GoStatsd is a simple Statsd client package for Go. It supports all commands
-supported by the [etsy/statsd](https://github.com/etsy/statsd/) project.
+supported by the [etsy/statsd](https://github.com/etsy/statsd/) project and
+automatically buffers stats.
+
+[Documentation](http://godoc.org/github.com/stvp/gostatsd)
 
 Usage
 -----

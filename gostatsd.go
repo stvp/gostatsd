@@ -14,11 +14,9 @@ const (
 )
 
 type StatsReporter interface {
-	Increment(name string, sampleRate float32)
-	Decrement(name string, sampleRate float32)
-	Count(name string, value int, sampleRate float32)
-	Gauge(name string, value float32)
-	Timing(name string, value time.Duration)
+	Count(bucket string, value int, sampleRate float32)
+	Gauge(bucket string, value float32)
+	Timing(bucket string, value time.Duration)
 }
 
 type statsdClient struct {
@@ -27,41 +25,36 @@ type statsdClient struct {
 	mutex  sync.Mutex
 }
 
+// If New() can't resolve the domain name, it will return an emptyClient (and
+// an error) so that all statsd functions will no-op.
 type emptyClient struct{}
 
-func (c emptyClient) Increment(string, float32)    {}
-func (c emptyClient) Decrement(string, float32)    {}
 func (c emptyClient) Count(string, int, float32)   {}
 func (c emptyClient) Gauge(string, float32)        {}
 func (c emptyClient) Timing(string, time.Duration) {}
 
 // New connects to the given Statsd server and, optionally, uses the given
-// namespace as a prefix for all supplied metric names. For example, if the
-// namespace is "foo.bar", a call to Increment with a "baz.biz" name will
-// result in a full path of "foo.bar.baz.biz".
-func New(host string, namespace string) (StatsReporter, error) {
+// prefix for all metric bucket names. If the prefix is "foo.bar.", a call to
+// Increment with a "baz.biz" name will result in a full bucket name of
+// "foo.bar.baz.biz".
+func New(host string, prefix string) (StatsReporter, error) {
+	rand.Seed(time.Now().UnixNano())
 	connection, err := net.DialTimeout("udp", host, time.Second)
 	if err != nil {
 		return &emptyClient{}, err
 	}
-	if len(namespace) > 0 {
-		return &statsdClient{writer: connection, Prefix: namespace + "."}, nil
-	}
-	return &statsdClient{writer: connection, Prefix: ""}, nil
+	return &statsdClient{writer: connection, Prefix: prefix}, nil
 }
 
-func (c *statsdClient) record(sampleRate float32, name string, delta float32, kind string) {
-	// TODO seed rand?
-	// TODO scrub name
+func (c *statsdClient) record(sampleRate float32, bucket string, delta float32, kind string) {
 	if sampleRate < 1 && sampleRate <= rand.Float32() {
 		return
 	}
 	if sampleRate != 1 {
-		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.Prefix, name, delta, kind, sampleRate))
+		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.Prefix, bucket, delta, kind, sampleRate))
 	} else {
-		c.send(fmt.Sprintf("%s%s:%v|%s", c.Prefix, name, delta, kind))
+		c.send(fmt.Sprintf("%s%s:%v|%s", c.Prefix, bucket, delta, kind))
 	}
-	// TODO buffer and flush
 }
 
 func (c *statsdClient) send(data string) error {
@@ -74,26 +67,20 @@ func (c *statsdClient) send(data string) error {
 	return nil
 }
 
-func (c *statsdClient) Gauge(name string, value float32) {
-	c.record(1, name, value, "g")
+// Gauge sets an arbitrary value.
+func (c *statsdClient) Gauge(bucket string, value float32) {
+	c.record(1, bucket, value, "g")
 }
 
-func (c *statsdClient) Count(name string, value int, sampleRate float32) {
-	c.record(sampleRate, name, float32(value), "c")
+// Count increments (or decrements the value in a counter). Counters are
+// recorded and then reset to 0 when Statsd flushes.
+func (c *statsdClient) Count(bucket string, value int, sampleRate float32) {
+	c.record(sampleRate, bucket, float32(value), "c")
 }
 
-func (c *statsdClient) Increment(name string, sampleRate float32) {
-	c.record(sampleRate, name, 1, "c")
+// Timing records a time interval (in milliseconds). The
+// percentiles, mean, standard deviation, sum, and lower and upper
+// bounds are calculated by the Statsd server.
+func (c *statsdClient) Timing(bucket string, value time.Duration) {
+	c.record(1, bucket, float32(value/time.Millisecond), "ms")
 }
-
-func (c *statsdClient) Decrement(name string, sampleRate float32) {
-	c.record(sampleRate, name, -1, "c")
-}
-
-func (c *statsdClient) Timing(name string, value time.Duration) {
-	c.record(1, name, float32(value/time.Millisecond), "ms")
-}
-
-// https://github.com/etsy/statsd
-// TODO: Sets
-// TODO: and so on

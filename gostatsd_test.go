@@ -36,8 +36,8 @@ func expectMessage(t *testing.T, expected string, body fn) {
 }
 
 // Return a valid client that sends messages to the server set up above.
-func goodClient(namespace string) StatsReporter {
-	client, _ := New("localhost:8125", namespace)
+func goodClient(prefix string) StatsReporter {
+	client, _ := New("localhost:8125", prefix)
 	return client
 }
 
@@ -65,37 +65,30 @@ func TestGoodConnection(t *testing.T) {
 	}
 }
 
-func TestIncrement(t *testing.T) {
-	expectMessage(t, "bukkit:1|c", func() {
-		goodClient("").Increment("bukkit", 1)
+func TestCount(t *testing.T) {
+	expectMessage(t, "bukkit:2|c", func() {
+		goodClient("").Count("bukkit", 2, 1)
 	})
-}
-
-func TestIncrementNamespace(t *testing.T) {
-	expectMessage(t, "dude.cool.bukkit:1|c", func() {
-		goodClient("dude").Increment("cool.bukkit", 1)
+	expectMessage(t, "bukkit:-10|c", func() {
+		goodClient("").Count("bukkit", -10, 1)
 	})
-}
-
-// TODO: How can we stub rand.Float32()
-func TestIncrementSampleRate(t *testing.T) {
+	// TODO: How can we stub rand.Float32()
 	expectMessage(t, "bukkit:1|c|@0.999999", func() {
-		goodClient("").Increment("bukkit", 0.999999)
+		goodClient("").Count("bukkit", 1, 0.999999)
 	})
 }
 
-func TestDecrement(t *testing.T) {
-	expectMessage(t, "bukkit:-1|c", func() {
-		goodClient("").Decrement("bukkit", 1.0)
+func TestNamespace(t *testing.T) {
+	expectMessage(t, "dude.cool.bukkit:1|c", func() {
+		goodClient("dude.").Count("cool.bukkit", 1, 1)
 	})
 }
 
 func TestTiming(t *testing.T) {
 	expectMessage(t, "bukkit:250|ms", func() {
-		goodClient("").Timing("bukkit", 250 * time.Millisecond)
+		goodClient("").Timing("bukkit", 250*time.Millisecond)
 	})
 	expectMessage(t, "bukkit:250000|ms", func() {
-		goodClient("").Timing("bukkit", 250 * time.Second)
+		goodClient("").Timing("bukkit", 250*time.Second)
 	})
 }
-

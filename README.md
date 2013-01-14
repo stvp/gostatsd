@@ -1,6 +1,8 @@
 GoStatsd
 ========
 
+[![Build Status](https://travis-ci.org/stvp/gostatsd.png)](https://travis-ci.org/stvp/gostatsd)
+
 GoStatsd is a simple Statsd client package for Go.
 
 Usage

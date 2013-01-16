@@ -12,8 +12,8 @@ Usage
 
 GoStatsd buffers up to 512 bytes of data before sending a UDP packet. This means
 that you need to manually call `Flush()` after you're done recording your stats
-to send any remaining stats. The easiest way is to just call `defer client.Flus()`
-after creating a new statsd client.
+to send any remaining stats. The easiest way is to just call `defer
+client.Flush()` after creating a new statsd client.
 
 ```go
 client := statsd.New("127.0.0.1:8125", "some.prefix.")

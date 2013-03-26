@@ -1,7 +1,7 @@
 /*
-GoStatsd is a simple Statsd client package for Go. It supports all commands
-supported by the etsy/statsd (https://github.com/etsy/statsd/) project and
-automatically buffers stats into 512 byte packets.
+The statsd package provides a Statsd client. It supports all commands supported
+by the Etsy statsd server implementation and automatically buffers stats into
+512 byte packets.
 */
 package statsd
 
@@ -37,8 +37,8 @@ type statsdClient struct {
 	buffer bytes.Buffer
 }
 
-// If New() can't resolve the domain name, it will return an emptyClient (and
-// an error) so that all statsd functions will no-op.
+// -- emptyClient
+
 type emptyClient struct{}
 
 func (c emptyClient) Flush() error                 { return nil }
@@ -47,10 +47,16 @@ func (c emptyClient) Gauge(string, float64)        {}
 func (c emptyClient) Timing(string, time.Duration) {}
 func (c emptyClient) CountUnique(string, string)   {}
 
+// -- statsdClient
+
 // New connects to the given Statsd server and, optionally, uses the given
 // prefix for all metric bucket names. If the prefix is "foo.bar.", a call to
 // Increment with a "baz.biz" name will result in a full bucket name of
 // "foo.bar.baz.biz".
+//
+// If there is an error resolving the host, New will return an error as well as
+// a no-op StatsReporter so that code mixed with statsd calls can continue to
+// run without errors.
 func New(host string, prefix string) (StatsReporter, error) {
 	rand.Seed(time.Now().UnixNano())
 	connection, err := net.DialTimeout("udp", host, time.Second)
@@ -93,7 +99,8 @@ func (c *statsdClient) send(data string) error {
 	return nil
 }
 
-// Sends all buffered data, if any.
+// Flush sends all buffered data to the statsd server, if there is any in the
+// buffer.
 func (c *statsdClient) Flush() error {
 	if c.buffer.Len() > 0 {
 		_, err := c.writer.Write(c.buffer.Bytes())

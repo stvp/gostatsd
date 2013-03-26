@@ -7,9 +7,7 @@ import (
 	"time"
 )
 
-//
-// Helpers
-//
+// -- Helpers
 
 var addr, _ = net.ResolveUDPAddr("udp", ":8125")
 var listener, _ = net.ListenUDP("udp", addr)
@@ -47,9 +45,7 @@ func goodClient(prefix string) StatsReporter {
 	return client
 }
 
-//
-// The tests
-//
+// -- Tests
 
 func TestBadConnection(t *testing.T) {
 	client, err := New("broken:9999", "")

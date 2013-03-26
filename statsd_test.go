@@ -47,7 +47,7 @@ func goodClient(prefix string) StatsReporter {
 
 // -- Tests
 
-func TestBadConnection(t *testing.T) {
+func TestNew(t *testing.T) {
 	client, err := New("broken:9999", "")
 	if err == nil {
 		t.Error(err)
@@ -55,10 +55,8 @@ func TestBadConnection(t *testing.T) {
 	if reflect.TypeOf(client).String() != "*statsd.emptyClient" {
 		t.Fatal("A bad connection should return an emptyClient.")
 	}
-}
 
-func TestGoodConnection(t *testing.T) {
-	client, err := New("localhost:8125", "")
+	client, err = New("localhost:8125", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,18 +65,47 @@ func TestGoodConnection(t *testing.T) {
 	}
 }
 
+func TestGauge(t *testing.T) {
+	// Positive numbers
+	expectMessage(t, "bukkit:2|g", func() {
+		client := goodClient("")
+		client.Gauge("bukkit", 2)
+		client.Flush()
+	})
+	// Negative numbers
+	expectMessage(t, "bukkit:-12|g", func() {
+		client := goodClient("")
+		client.Gauge("bukkit", -12)
+		client.Flush()
+	})
+	// Large floats
+	expectMessage(t, "bukkit:1.234567890123457|g", func() {
+		client := goodClient("")
+		client.Gauge("bukkit", 1.2345678901234568901234)
+		client.Flush()
+	})
+}
+
 func TestCount(t *testing.T) {
+	// Positive numbers
 	expectMessage(t, "bukkit:2|c", func() {
 		client := goodClient("")
 		client.Count("bukkit", 2, 1)
 		client.Flush()
 	})
+	// Negative numbers
 	expectMessage(t, "bukkit:-10|c", func() {
 		client := goodClient("")
 		client.Count("bukkit", -10, 1)
 		client.Flush()
 	})
-	// TODO: How can we stub rand.Float32()
+	// Large floats
+	expectMessage(t, "bukkit:1.234567890123457|c", func() {
+		client := goodClient("")
+		client.Count("bukkit", 1.2345678901234568901234, 1)
+		client.Flush()
+	})
+	// Sample rates
 	expectMessage(t, "bukkit:1|c|@0.999999", func() {
 		client := goodClient("")
 		client.Count("bukkit", 1, 0.999999)
@@ -146,7 +173,7 @@ four.score.and.seven.years.ago:13|c`
 	message := getMessage(func() {
 		client := goodClient("")
 		for i := 0; i < 16; i++ {
-			client.Count("four.score.and.seven.years.ago", i, 1)
+			client.Count("four.score.and.seven.years.ago", float64(i), 1)
 		}
 		client.Flush()
 	})

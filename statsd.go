@@ -20,11 +20,11 @@ const (
 	MAX_PACKET_SIZE = 512
 )
 
-var nonAlphaNum, _ = regexp.Compile("[^\\w]+")
+var nonAlphaNum = regexp.MustCompile(`[^\w]+`)
 
 type StatsReporter interface {
 	Flush() error
-	Count(bucket string, value int, sampleRate float64)
+	Count(bucket string, value float64, sampleRate float64)
 	Gauge(bucket string, value float64)
 	Timing(bucket string, value time.Duration)
 	CountUnique(bucket string, value string)
@@ -41,11 +41,11 @@ type statsdClient struct {
 
 type emptyClient struct{}
 
-func (c emptyClient) Flush() error                 { return nil }
-func (c emptyClient) Count(string, int, float64)   {}
-func (c emptyClient) Gauge(string, float64)        {}
-func (c emptyClient) Timing(string, time.Duration) {}
-func (c emptyClient) CountUnique(string, string)   {}
+func (c emptyClient) Flush() error                   { return nil }
+func (c emptyClient) Count(string, float64, float64) {}
+func (c emptyClient) Gauge(string, float64)          {}
+func (c emptyClient) Timing(string, time.Duration)   {}
+func (c emptyClient) CountUnique(string, string)     {}
 
 // -- statsdClient
 
@@ -120,8 +120,8 @@ func (c *statsdClient) Gauge(bucket string, value float64) {
 
 // Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
-func (c *statsdClient) Count(bucket string, value int, sampleRate float64) {
-	c.record(sampleRate, bucket, float64(value), "c")
+func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
+	c.record(sampleRate, bucket, value, "c")
 }
 
 // Timing records a time interval (in milliseconds). The percentiles, mean,

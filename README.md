@@ -1,8 +1,6 @@
 gostatsd
 ========
 
-[![Build Status](https://travis-ci.org/stvp/gostatsd.png?branch=master)](https://travis-ci.org/stvp/gostatsd)
-
 gostatsd is a Statsd client package for Go. It supports all commands supported
 by the [etsy/statsd](https://github.com/etsy/statsd/) project and automatically
 buffers stats into 512 byte UDP packets.

@@ -48,16 +48,21 @@ func (c emptyClient) CountUnique(string, string)     {}
 
 // -- statsdClient
 
-// New connects to the given Statsd server and, optionally, uses the given
+// New is the same as calling NewWithPacketSize with a 512 byte packet size.
+func New(host string, prefix string) (StatsReporter, error) {
+	return NewWithPacketSize(host, prefix, 512)
+}
+
+// NewWithPacketSize connects to the given Statsd server and uses the given
 // prefix for all metric bucket names. If the prefix is "foo.bar.", a call to
 // Increment with a "baz.biz" name will result in a full bucket name of
-// "foo.bar.baz.biz".
+// "foo.bar.baz.biz". The prefix can be an empty string.
 //
 // If there is an error resolving the host, New will return an error as well as
 // a no-op StatsReporter so that code mixed with statsd calls can continue to
 // run without errors.
-func New(host string, prefix string) (StatsReporter, error) {
-	rand.Seed(time.Now().UnixNano())
+func NewWithPacketSize(host string, prefix string, packetSize int) (StatsReporter, error) {
+	rand.Seed(time.Now().UnixNano()) // used for sample rates
 	connection, err := net.DialTimeout("udp", host, time.Second)
 	if err != nil {
 		return &emptyClient{}, err

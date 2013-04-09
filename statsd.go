@@ -16,11 +16,9 @@ import (
 	"time"
 )
 
-const (
-	MAX_PACKET_SIZE = 512
+var (
+	nonAlphaNum = regexp.MustCompile(`[^\w]+`)
 )
-
-var nonAlphaNum = regexp.MustCompile(`[^\w]+`)
 
 type StatsReporter interface {
 	Flush() error
@@ -31,10 +29,11 @@ type StatsReporter interface {
 }
 
 type statsdClient struct {
-	prefix string
-	writer io.Writer
-	mutex  sync.Mutex
-	buffer bytes.Buffer
+	PacketSize int
+	prefix     string
+	writer     io.Writer
+	mutex      sync.Mutex
+	buffer     bytes.Buffer
 }
 
 // -- emptyClient
@@ -63,7 +62,11 @@ func New(host string, prefix string) (StatsReporter, error) {
 	if err != nil {
 		return &emptyClient{}, err
 	}
-	return &statsdClient{writer: connection, prefix: prefix}, nil
+	return &statsdClient{
+		PacketSize: 512,
+		writer:     connection,
+		prefix:     prefix,
+	}, nil
 }
 
 func (c *statsdClient) record(sampleRate float64, bucket string, value interface{}, kind string) {
@@ -83,7 +86,7 @@ func (c *statsdClient) send(data string) error {
 	defer c.mutex.Unlock()
 
 	// Flush buffer if needed
-	if c.buffer.Len()+len(data)+1 >= MAX_PACKET_SIZE {
+	if c.buffer.Len()+len(data)+1 >= c.PacketSize {
 		err := c.Flush()
 		if err != nil {
 			return err

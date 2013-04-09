@@ -68,7 +68,7 @@ func NewWithPacketSize(host string, prefix string, packetSize int) (StatsReporte
 		return &emptyClient{}, err
 	}
 	return &statsdClient{
-		PacketSize: 512,
+		PacketSize: packetSize,
 		writer:     connection,
 		prefix:     prefix,
 	}, nil

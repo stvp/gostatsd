@@ -117,10 +117,10 @@ func (c *statsdClient) Flush() error {
 
 	if c.buffer.Len() > 0 {
 		_, err := c.writer.Write(c.buffer.Bytes())
+		c.buffer.Reset()
 		if err != nil {
 			return err
 		}
-		c.buffer.Reset()
 	}
 	return nil
 }

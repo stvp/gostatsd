@@ -89,9 +89,6 @@ func (c *statsdClient) record(sampleRate float64, bucket, value, kind string) {
 }
 
 func (c *statsdClient) send(data string) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	// Flush buffer if needed
 	if c.buffer.Len()+len(data)+1 >= c.PacketSize {
 		err := c.Flush()
@@ -99,6 +96,9 @@ func (c *statsdClient) send(data string) error {
 			return err
 		}
 	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// Add to buffer
 	if c.buffer.Len() > 0 {
@@ -112,6 +112,9 @@ func (c *statsdClient) send(data string) error {
 // Flush sends all buffered data to the statsd server, if there is any in the
 // buffer.
 func (c *statsdClient) Flush() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	if c.buffer.Len() > 0 {
 		_, err := c.writer.Write(c.buffer.Bytes())
 		if err != nil {

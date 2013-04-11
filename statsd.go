@@ -75,7 +75,7 @@ func NewWithPacketSize(host string, prefix string, packetSize int) (StatsReporte
 	}, nil
 }
 
-func (c *statsdClient) record(sampleRate float64, bucket string, value interface{}, kind string) {
+func (c *statsdClient) record(sampleRate float64, bucket, value, kind string) {
 	if sampleRate < 1 && sampleRate <= rand.Float64() {
 		return
 	}
@@ -85,14 +85,7 @@ func (c *statsdClient) record(sampleRate float64, bucket string, value interface
 		suffix = fmt.Sprintf("|@%g", sampleRate)
 	}
 
-	var valueString string
-	if valueFloat, ok := value.(float64); ok {
-		valueString = strconv.FormatFloat(valueFloat, 'g', -1, 64)
-	} else {
-		valueString = fmt.Sprintf("%v", value)
-	}
-
-	c.send(fmt.Sprintf("%s%s:%s|%s%s", c.prefix, bucket, valueString, kind, suffix))
+	c.send(fmt.Sprintf("%s%s:%s|%s%s", c.prefix, bucket, value, kind, suffix))
 }
 
 func (c *statsdClient) send(data string) error {
@@ -132,24 +125,28 @@ func (c *statsdClient) Flush() error {
 // Gauge sets an arbitrary value. Only the value of the gauge at flush time is
 // stored by statsd.
 func (c *statsdClient) Gauge(bucket string, value float64) {
-	c.record(1, bucket, value, "g")
+	valueString := strconv.FormatFloat(value, 'g', -1, 64)
+	c.record(1, bucket, valueString, "g")
 }
 
 // Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
 func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
-	c.record(sampleRate, bucket, value, "c")
+	valueString := strconv.FormatFloat(value, 'g', -1, 64)
+	c.record(sampleRate, bucket, valueString, "c")
 }
 
 // Timing records a time interval (in milliseconds). The percentiles, mean,
 // standard deviation, sum, and lower and upper bounds are calculated by the
 // Statsd server.
 func (c *statsdClient) Timing(bucket string, value time.Duration) {
-	c.record(1, bucket, float64(value/time.Millisecond), "ms")
+	valueString := strconv.FormatFloat(float64(value/time.Millisecond), 'g', -1, 64)
+	c.record(1, bucket, valueString, "ms")
 }
 
 // Unique records the number of unique values received between flushes using
 // Statsd Sets.
 func (c *statsdClient) CountUnique(bucket string, value string) {
-	c.record(1, bucket, nonAlphaNum.ReplaceAllString(value, "_"), "s")
+	cleanValue := nonAlphaNum.ReplaceAllString(value, "_")
+	c.record(1, bucket, cleanValue, "s")
 }

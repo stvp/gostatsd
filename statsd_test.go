@@ -35,22 +35,20 @@ func TestNew(t *testing.T) {
 
 func TestGauge(t *testing.T) {
 	udp.SetAddr(":8125")
+	client := goodClient("", 512)
 
 	// Positive numbers
 	udp.ShouldReceiveOnly(t, "bukkit:2|g", func() {
-		client := goodClient("", 512)
 		client.Gauge("bukkit", 2)
 		client.Flush()
 	})
 	// Negative numbers
 	udp.ShouldReceiveOnly(t, "bukkit:-12|g", func() {
-		client := goodClient("", 512)
 		client.Gauge("bukkit", -12)
 		client.Flush()
 	})
 	// Large floats
 	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|g", func() {
-		client := goodClient("", 512)
 		client.Gauge("bukkit", 1.2345678901234568901234)
 		client.Flush()
 	})
@@ -58,28 +56,25 @@ func TestGauge(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	udp.SetAddr(":8125")
+	client := goodClient("", 512)
 
 	// Positive numbers
 	udp.ShouldReceiveOnly(t, "bukkit:2|c", func() {
-		client := goodClient("", 512)
 		client.Count("bukkit", 2, 1)
 		client.Flush()
 	})
 	// Negative numbers
 	udp.ShouldReceiveOnly(t, "bukkit:-10|c", func() {
-		client := goodClient("", 512)
 		client.Count("bukkit", -10, 1)
 		client.Flush()
 	})
 	// Large floats
 	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|c", func() {
-		client := goodClient("", 512)
 		client.Count("bukkit", 1.2345678901234568901234, 1)
 		client.Flush()
 	})
 	// Sample rates
 	udp.ShouldReceiveOnly(t, "bukkit:1|c|@0.999999", func() {
-		client := goodClient("", 512)
 		client.Count("bukkit", 1, 0.999999)
 		client.Flush()
 	})
@@ -97,14 +92,14 @@ func TestPrefix(t *testing.T) {
 
 func TestTiming(t *testing.T) {
 	udp.SetAddr(":8125")
+	client := goodClient("", 512)
 
 	udp.ShouldReceiveOnly(t, "bukkit:250|ms", func() {
-		client := goodClient("", 512)
 		client.Timing("bukkit", 250*time.Millisecond)
 		client.Flush()
 	})
+
 	udp.ShouldReceiveOnly(t, "bukkit:250000|ms", func() {
-		client := goodClient("", 512)
 		client.Timing("bukkit", 250*time.Second)
 		client.Flush()
 	})
@@ -112,14 +107,14 @@ func TestTiming(t *testing.T) {
 
 func TestCountUnique(t *testing.T) {
 	udp.SetAddr(":8125")
+	client := goodClient("", 512)
 
 	udp.ShouldReceiveOnly(t, "bukkit:foo|s", func() {
-		client := goodClient("", 512)
 		client.CountUnique("bukkit", "foo")
 		client.Flush()
 	})
+
 	udp.ShouldReceiveOnly(t, "bukkit:foo_bar_1_baz_biz|s", func() {
-		client := goodClient("", 512)
 		client.CountUnique("bukkit", "foo:bar -1- baz|biz")
 		client.Flush()
 	})
@@ -210,4 +205,3 @@ four.score.and.seven.years.ago:15|c`
 		client.Flush()
 	})
 }
-

@@ -125,6 +125,26 @@ func TestCountUnique(t *testing.T) {
 	})
 }
 
+func TestFloatFormatting(t *testing.T) {
+	udp.SetAddr(":8125")
+	client := goodClient("", 512)
+
+	udp.ShouldReceiveOnly(t, "foo:6.67428e-11|g", func() {
+		client.Gauge("foo", 6.67428e-11)
+		client.Flush()
+	})
+
+	udp.ShouldReceiveOnly(t, "foo:1.2345678901234567|g", func() {
+		client.Gauge("foo", 1.234567890123456789)
+		client.Flush()
+	})
+
+	udp.ShouldReceiveOnly(t, "foo:1.2345678901234567e+19|g", func() {
+		client.Gauge("foo", 12345678901234567890)
+		client.Flush()
+	})
+}
+
 func TestBuffer(t *testing.T) {
 	udp.SetAddr(":8125")
 

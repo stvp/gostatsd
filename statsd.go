@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -79,11 +80,19 @@ func (c *statsdClient) record(sampleRate float64, bucket string, value interface
 		return
 	}
 
-	if sampleRate == 1 {
-		c.send(fmt.Sprintf("%s%s:%v|%s", c.prefix, bucket, value, kind))
-	} else {
-		c.send(fmt.Sprintf("%s%s:%v|%s|@%f", c.prefix, bucket, value, kind, sampleRate))
+	suffix := ""
+	if sampleRate != 1 {
+		suffix = fmt.Sprintf("|@%g", sampleRate)
 	}
+
+	var valueString string
+	if valueFloat, ok := value.(float64); ok {
+		valueString = strconv.FormatFloat(valueFloat, 'g', -1, 64)
+	} else {
+		valueString = fmt.Sprintf("%v", value)
+	}
+
+	c.send(fmt.Sprintf("%s%s:%s|%s%s", c.prefix, bucket, valueString, kind, suffix))
 }
 
 func (c *statsdClient) send(data string) error {

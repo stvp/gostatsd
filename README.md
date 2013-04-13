@@ -10,9 +10,9 @@ buffers stats into 512 byte UDP packets.
 Usage
 -----
 
-gostatsd buffers up to 512 bytes of data before sending a UDP packet. This means
-that you need to manually call `Flush()` after you're done recording your stats
-to send any remaining stats.
+gostatsd, by default, buffers up to 512 bytes of data before sending a UDP
+packet. This means that you need to manually call `Flush()` after you're done
+recording your stats to send any remaining stats.
 
 ```go
 package main
@@ -43,5 +43,20 @@ func main() {
 	// ...
 	client.Timing("methodtime", time.Since(start))
 }
+```
+
+The buffer size (in bytes) can be customized:
+
+```go
+client := NewWithPacketSize("my.prefix.", 128)
+```
+
+### Unbuffered sending
+
+A buffer size of 0 or less will cause all stats to be sent individually as soon
+as they are received. (This also means that you wont need to call `Flush`.)
+
+```go
+client := NewWithPacketSize("my.prefix.", -1)
 ```
 

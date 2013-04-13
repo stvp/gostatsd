@@ -30,6 +30,8 @@ type StatsReporter interface {
 }
 
 type statsdClient struct {
+	// Maximum size of sent UDP packets, in bytes. A value of 0 or less will
+	// cause all stats to be sent immediately.
 	PacketSize int
 	prefix     string
 	writer     io.Writer
@@ -59,9 +61,13 @@ func New(host string, prefix string) (StatsReporter, error) {
 // Increment with a "baz.biz" name will result in a full bucket name of
 // "foo.bar.baz.biz". The prefix can be an empty string.
 //
-// If there is an error resolving the host, New will return an error as well as
-// a no-op StatsReporter so that code mixed with statsd calls can continue to
-// run without errors.
+// The packet size is the maximum size (in bytes) that will be buffered before
+// being sent. A value of 0 or less will cause each stat to be sent
+// immediately, as it is received.
+//
+// If there is an error resolving the host, NewWithPacketSize will return an
+// error as well as a no-op StatsReporter so that code mixed with statsd calls
+// can continue to run without errors.
 func NewWithPacketSize(host string, prefix string, packetSize int) (StatsReporter, error) {
 	rand.Seed(time.Now().UnixNano()) // used for sample rates
 	connection, err := net.DialTimeout("udp", host, time.Second)
@@ -89,24 +95,30 @@ func (c *statsdClient) record(sampleRate float64, bucket, value, kind string) {
 }
 
 func (c *statsdClient) send(data string) error {
-	// Flush buffer if needed
-	if c.buffer.Len()+len(data)+1 >= c.PacketSize {
-		err := c.Flush()
-		if err != nil {
-			return err
+	if c.PacketSize <= 0 {
+		c.writeToBuffer(data)
+		c.Flush()
+	} else {
+		if c.buffer.Len()+len(data)+1 > c.PacketSize {
+			err := c.Flush()
+			if err != nil {
+				return err
+			}
 		}
+		c.writeToBuffer(data)
 	}
 
+	return nil
+}
+
+func (c *statsdClient) writeToBuffer(data string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// Add to buffer
 	if c.buffer.Len() > 0 {
 		c.buffer.WriteRune('\n')
 	}
 	c.buffer.WriteString(data)
-
-	return nil
 }
 
 // Flush sends all buffered data to the statsd server, if there is any in the

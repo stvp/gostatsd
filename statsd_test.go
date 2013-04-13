@@ -204,4 +204,10 @@ four.score.and.seven.years.ago:15|c`
 		}
 		client.Flush()
 	})
+
+	udp.ShouldReceiveOnly(t, "a:1|c", func() {
+		client := goodClient("", 0)
+		client.Count("a", 1, 1)
+		// No flush needed
+	})
 }

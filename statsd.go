@@ -140,14 +140,14 @@ func (c *statsdClient) Flush() error {
 // Gauge sets an arbitrary value. Only the value of the gauge at flush time is
 // stored by statsd.
 func (c *statsdClient) Gauge(bucket string, value float64) {
-	valueString := strconv.FormatFloat(value, 'g', -1, 64)
+	valueString := strconv.FormatFloat(value, 'f', -1, 64)
 	c.record(1, bucket, valueString, "g")
 }
 
 // Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
 func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
-	valueString := strconv.FormatFloat(value, 'g', -1, 64)
+	valueString := strconv.FormatFloat(value, 'f', -1, 64)
 	c.record(sampleRate, bucket, valueString, "c")
 }
 
@@ -155,7 +155,7 @@ func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
 // standard deviation, sum, and lower and upper bounds are calculated by the
 // Statsd server.
 func (c *statsdClient) Timing(bucket string, value time.Duration) {
-	valueString := strconv.FormatFloat(float64(value/time.Millisecond), 'g', -1, 64)
+	valueString := strconv.FormatFloat(float64(value/time.Millisecond), 'f', -1, 64)
 	c.record(1, bucket, valueString, "ms")
 }
 

@@ -52,6 +52,10 @@ func TestGauge(t *testing.T) {
 		client.Gauge("bukkit", 1.2345678901234568901234)
 		client.Flush()
 	})
+	udp.ShouldReceiveOnly(t, "bukkit:0.000000000000001|g", func() {
+		client.Gauge("bukkit", 0.000000000000001)
+		client.Flush()
+	})
 }
 
 func TestCount(t *testing.T) {
@@ -124,7 +128,7 @@ func TestFloatFormatting(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
-	udp.ShouldReceiveOnly(t, "foo:6.67428e-11|g", func() {
+	udp.ShouldReceiveOnly(t, "foo:0.0000000000667428|g", func() {
 		client.Gauge("foo", 6.67428e-11)
 		client.Flush()
 	})
@@ -134,8 +138,8 @@ func TestFloatFormatting(t *testing.T) {
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "foo:1.2345678901234567e+19|g", func() {
-		client.Gauge("foo", 12345678901234567890)
+	udp.ShouldReceiveOnly(t, "foo:1234567000000000000|g", func() {
+		client.Gauge("foo", 1234567000000000000)
 		client.Flush()
 	})
 }

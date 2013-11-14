@@ -7,16 +7,46 @@ import (
 	"time"
 )
 
-// Return a valid client that sends messages to the server set up above.
-func goodClient(prefix string, packetSize int) StatsReporter {
-	client, _ := NewWithPacketSize("localhost:8125", prefix, packetSize)
+// Return a valid client that sends messages to our go-udp-testing server.
+func goodClient(prefix string, packetSize int) Client {
+	client, _ := NewWithPacketSize("statsd://localhost:8125/"+prefix, packetSize)
 	return client
 }
 
 // -- Tests
 
+type parseUrlTestcase struct {
+	url    string
+	host   string
+	prefix string
+	good   bool
+}
+
+func TestParseUrl(t *testing.T) {
+	tests := []parseUrlTestcase{
+		{"", "", "", false},
+	}
+
+	for _, test := range tests {
+		host, prefix, err := parseUrl(test.url)
+		if test.good {
+			if test.host != host {
+				t.Errorf("Expected host %#v but got %#v", test.host, host)
+			}
+			if test.prefix != prefix {
+				t.Errorf("Expected prefix %#v but got %#v", test.prefix, prefix)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("parseUrl(%#v) should return an error", test.url)
+			}
+		}
+	}
+
+}
+
 func TestNew(t *testing.T) {
-	client, err := New("broken:9999", "")
+	client, err := New("statsd://broken:9999")
 	if err == nil {
 		t.Error(err)
 	}
@@ -24,7 +54,7 @@ func TestNew(t *testing.T) {
 		t.Fatal("A bad connection should return an emptyClient.")
 	}
 
-	client, err = New("localhost:8125", "")
+	client, err = New("statsd://localhost:8125")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,9 +116,9 @@ func TestCount(t *testing.T) {
 
 func TestPrefix(t *testing.T) {
 	udp.SetAddr(":8125")
+	client := goodClient("dude", 512)
 
 	udp.ShouldReceiveOnly(t, "dude.cool.bukkit:1|c", func() {
-		client := goodClient("dude.", 512)
 		client.Count("cool.bukkit", 1, 1)
 		client.Flush()
 	})

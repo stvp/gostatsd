@@ -20,6 +20,8 @@ var (
 	nonAlphaNum = regexp.MustCompile(`[^\w]+`)
 )
 
+// -- Client
+
 type Client interface {
 	Flush() error
 	Count(bucket string, value float64, sampleRate float64)
@@ -27,38 +29,6 @@ type Client interface {
 	Timing(bucket string, value time.Duration)
 	CountUnique(bucket string, value string)
 }
-
-type statsdClient struct {
-	// Maximum size of sent UDP packets, in bytes. A value of 0 or less will
-	// cause all stats to be sent immediately.
-	PacketSize int
-
-	// Prefix for all metric names. If non-blank, this should include the
-	// trailing period.
-	prefix string
-
-	// UDP connection to Statsd
-	conn net.Conn
-
-	// Wrap buffer writes with a mutex to prevent goroutines from stomping on
-	// each other.
-	mutex sync.Mutex
-
-	// Buffer metrics up to a certain buffer size here.
-	buffer bytes.Buffer
-}
-
-// -- emptyClient
-
-type emptyClient struct{}
-
-func (c emptyClient) Flush() error                   { return nil }
-func (c emptyClient) Count(string, float64, float64) {}
-func (c emptyClient) Gauge(string, float64)          {}
-func (c emptyClient) Timing(string, time.Duration)   {}
-func (c emptyClient) CountUnique(string, string)     {}
-
-// -- Client
 
 // New is the same as calling NewWithPacketSize with a 512 byte packet size.
 func New(statsdUrl string) (Client, error) {
@@ -90,7 +60,41 @@ func NewWithPacketSize(statsdUrl string, packetSize int) (Client, error) {
 		PacketSize: packetSize,
 		conn:       connection,
 		prefix:     prefix,
+		buffer:     lockableBuffer{},
 	}, nil
+}
+
+// -- emptyClient
+
+type emptyClient struct{}
+
+func (c emptyClient) Flush() error                   { return nil }
+func (c emptyClient) Count(string, float64, float64) {}
+func (c emptyClient) Gauge(string, float64)          {}
+func (c emptyClient) Timing(string, time.Duration)   {}
+func (c emptyClient) CountUnique(string, string)     {}
+
+// -- statsdClient
+
+type lockableBuffer struct {
+	bytes.Buffer
+	sync.Mutex
+}
+
+type statsdClient struct {
+	// Maximum size of sent UDP packets, in bytes. A value of 0 or less will
+	// cause all stats to be sent immediately.
+	PacketSize int
+
+	// Prefix for all metric names. If non-blank, this should include the
+	// trailing period.
+	prefix string
+
+	// UDP connection to Statsd
+	conn net.Conn
+
+	// Buffer metrics before sending to Statsd as UDP packets.
+	buffer lockableBuffer
 }
 
 func (c *statsdClient) record(sampleRate float64, bucket, value, kind string) {
@@ -124,8 +128,8 @@ func (c *statsdClient) send(data string) error {
 }
 
 func (c *statsdClient) writeToBuffer(data string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.buffer.Lock()
+	defer c.buffer.Unlock()
 
 	if c.buffer.Len() > 0 {
 		c.buffer.WriteRune('\n')
@@ -134,11 +138,11 @@ func (c *statsdClient) writeToBuffer(data string) {
 }
 
 // Flush sends all buffered data to the statsd server, if there is any in the
-// buffer.
+// buffer, and empties the buffer.
 func (c *statsdClient) Flush() error {
 	if c.buffer.Len() > 0 {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
+		c.buffer.Lock()
+		defer c.buffer.Unlock()
 
 		_, err := c.conn.Write(c.buffer.Bytes())
 		c.buffer.Reset()

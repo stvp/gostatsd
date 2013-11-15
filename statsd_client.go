@@ -8,7 +8,6 @@ package statsd
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"regexp"
@@ -33,10 +32,18 @@ type statsdClient struct {
 	// Maximum size of sent UDP packets, in bytes. A value of 0 or less will
 	// cause all stats to be sent immediately.
 	PacketSize int
-	prefix     string
-	writer     io.Writer
-	mutex      sync.Mutex
-	buffer     bytes.Buffer
+
+	// Prefix for all metric names. If non-blank, this should include the
+	// trailing period.
+	prefix string
+
+	// UDP connection to Statsd
+	conn net.Conn
+
+	mutex sync.Mutex
+
+	// Buffer metrics up to a certain buffer size here.
+	buffer bytes.Buffer
 }
 
 // -- emptyClient
@@ -49,7 +56,7 @@ func (c emptyClient) Gauge(string, float64)          {}
 func (c emptyClient) Timing(string, time.Duration)   {}
 func (c emptyClient) CountUnique(string, string)     {}
 
-// -- statsdClient
+// -- Client
 
 // New is the same as calling NewWithPacketSize with a 512 byte packet size.
 func New(statsdUrl string) (Client, error) {
@@ -68,17 +75,18 @@ func New(statsdUrl string) (Client, error) {
 // error as well as a no-op StatsReporter so that code mixed with statsd calls
 // can continue to run without errors.
 func NewWithPacketSize(statsdUrl string, packetSize int) (Client, error) {
-	rand.Seed(time.Now().UnixNano()) // used for sample rates
+	// Seed random number generator for dealing with sample rates.
+	rand.Seed(time.Now().UnixNano())
 
 	host, prefix, err := parseUrl(statsdUrl)
-
 	connection, err := net.DialTimeout("udp", host, time.Second)
 	if err != nil {
 		return &emptyClient{}, err
 	}
+
 	return &statsdClient{
 		PacketSize: packetSize,
-		writer:     connection,
+		conn:       connection,
 		prefix:     prefix,
 	}, nil
 }
@@ -130,7 +138,7 @@ func (c *statsdClient) Flush() error {
 	defer c.mutex.Unlock()
 
 	if c.buffer.Len() > 0 {
-		_, err := c.writer.Write(c.buffer.Bytes())
+		_, err := c.conn.Write(c.buffer.Bytes())
 		c.buffer.Reset()
 		if err != nil {
 			return err
@@ -167,5 +175,3 @@ func (c *statsdClient) CountUnique(bucket string, value string) {
 	cleanValue := nonAlphaNum.ReplaceAllString(value, "_")
 	c.record(1, bucket, cleanValue, "s")
 }
-
-

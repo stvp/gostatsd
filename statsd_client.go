@@ -136,16 +136,17 @@ func (c *statsdClient) writeToBuffer(data string) {
 // Flush sends all buffered data to the statsd server, if there is any in the
 // buffer.
 func (c *statsdClient) Flush() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	if c.buffer.Len() > 0 {
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
+
 		_, err := c.conn.Write(c.buffer.Bytes())
 		c.buffer.Reset()
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

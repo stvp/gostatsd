@@ -83,7 +83,10 @@ Benchmarks
 November 14, 2013:
 
 ```
-BenchmarkGaugeNoPrefix     1888 ns/op
-BenchmarkGaugeWithPrefix   2213 ns/op
+% go test -bench . --benchmem
+BenchmarkGaugeNoPrefix             1113 ns/op   80 B/op   4 allocs/op
+BenchmarkGaugeWithPrefix           1326 ns/op   80 B/op   4 allocs/op
+BenchmarkGaugeNoBuffer             6984 ns/op   80 B/op   4 allocs/op
+BenchmarkGaugeWithPrefixNoBuffer   6910 ns/op   80 B/op   4 allocs/op
 ```
 

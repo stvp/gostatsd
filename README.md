@@ -77,3 +77,13 @@ statsd.Setup("127.0.0.1:8125/my.prefix", -1)
 client := statsd.NewWithPacketSize("127.0.0.1:8125", "my.prefix.", -1)
 ```
 
+Benchmarks
+==========
+
+November 14, 2013:
+
+```
+BenchmarkGaugeNoPrefix     1888 ns/op
+BenchmarkGaugeWithPrefix   2213 ns/op
+```
+

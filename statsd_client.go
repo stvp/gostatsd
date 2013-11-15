@@ -40,6 +40,8 @@ type statsdClient struct {
 	// UDP connection to Statsd
 	conn net.Conn
 
+	// Wrap buffer writes with a mutex to prevent goroutines from stomping on
+	// each other.
 	mutex sync.Mutex
 
 	// Buffer metrics up to a certain buffer size here.

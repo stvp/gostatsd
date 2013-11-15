@@ -65,6 +65,24 @@ func TestGauge(t *testing.T) {
 	})
 }
 
+func BenchmarkGaugeNoPrefix(b *testing.B) {
+	udp.SetAddr(":8125")
+	client := goodClient("", 512)
+
+	for i := 0; i < b.N; i++ {
+		client.Gauge("metrics.are.cool", 98765.4321)
+	}
+}
+
+func BenchmarkGaugeWithPrefix(b *testing.B) {
+	udp.SetAddr(":8125")
+	client := goodClient("some.prefix.here", 512)
+
+	for i := 0; i < b.N; i++ {
+		client.Gauge("metrics.are.cool", 98765.4321)
+	}
+}
+
 func TestCount(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)

@@ -11,10 +11,8 @@ import (
 	"io"
 	"math/rand"
 	"net"
-	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -170,14 +168,4 @@ func (c *statsdClient) CountUnique(bucket string, value string) {
 	c.record(1, bucket, cleanValue, "s")
 }
 
-func parseUrl(statsdUrl string) (host, prefix string, err error) {
-	parsedStatsdUrl, err := url.Parse(statsdUrl)
-	if err != nil {
-		return "", "", err
-	}
-	prefix = strings.TrimPrefix(parsedStatsdUrl.Path, "/")
-	if len(prefix) > 0 {
-		prefix = prefix + "."
-	}
-	return parsedStatsdUrl.Host, prefix, nil
-}
+

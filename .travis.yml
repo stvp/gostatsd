@@ -1,5 +1,7 @@
 language: go
 go:
-    - 1.1
-    - tip
+  - 1.1
+  - tip
+install:
+  - go get github.com/stvp/go-udp-testing
 

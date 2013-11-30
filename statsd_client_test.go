@@ -45,21 +45,21 @@ func TestGauge(t *testing.T) {
 	client := goodClient("", 512)
 
 	// Positive numbers
-	udp.ShouldReceiveOnly(t, "bukkit:2|g\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:2|g", func() {
 		client.Gauge("bukkit", 2)
 		client.Flush()
 	})
 	// Negative numbers
-	udp.ShouldReceiveOnly(t, "bukkit:-12|g\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:-12|g", func() {
 		client.Gauge("bukkit", -12)
 		client.Flush()
 	})
 	// Large floats
-	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|g\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|g", func() {
 		client.Gauge("bukkit", 1.2345678901234568901234)
 		client.Flush()
 	})
-	udp.ShouldReceiveOnly(t, "bukkit:0.000000000000001|g\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:0.000000000000001|g", func() {
 		client.Gauge("bukkit", 0.000000000000001)
 		client.Flush()
 	})
@@ -101,29 +101,27 @@ func BenchmarkGaugeWithPrefixNoBuffer(b *testing.B) {
 	}
 }
 
-
-
 func TestCount(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
 	// Positive numbers
-	udp.ShouldReceiveOnly(t, "bukkit:2|c\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:2|c", func() {
 		client.Count("bukkit", 2, 1)
 		client.Flush()
 	})
 	// Negative numbers
-	udp.ShouldReceiveOnly(t, "bukkit:-10|c\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:-10|c", func() {
 		client.Count("bukkit", -10, 1)
 		client.Flush()
 	})
 	// Large floats
-	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|c\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:1.234567890123457|c", func() {
 		client.Count("bukkit", 1.2345678901234568901234, 1)
 		client.Flush()
 	})
 	// Sample rates
-	udp.ShouldReceiveOnly(t, "bukkit:1|c|@0.999999\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:1|c|@0.999999", func() {
 		client.Count("bukkit", 1, 0.999999)
 		client.Flush()
 	})
@@ -133,7 +131,7 @@ func TestPrefix(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("dude", 512)
 
-	udp.ShouldReceiveOnly(t, "dude.cool.bukkit:1|c\n", func() {
+	udp.ShouldReceiveOnly(t, "dude.cool.bukkit:1|c", func() {
 		client.Count("cool.bukkit", 1, 1)
 		client.Flush()
 	})
@@ -143,12 +141,12 @@ func TestTiming(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
-	udp.ShouldReceiveOnly(t, "bukkit:250|ms\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:250|ms", func() {
 		client.Timing("bukkit", 250*time.Millisecond)
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "bukkit:250000|ms\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:250000|ms", func() {
 		client.Timing("bukkit", 250*time.Second)
 		client.Flush()
 	})
@@ -158,12 +156,12 @@ func TestCountUnique(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
-	udp.ShouldReceiveOnly(t, "bukkit:foo|s\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:foo|s", func() {
 		client.CountUnique("bukkit", "foo")
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "bukkit:foo_bar_1_baz_biz|s\n", func() {
+	udp.ShouldReceiveOnly(t, "bukkit:foo_bar_1_baz_biz|s", func() {
 		client.CountUnique("bukkit", "foo:bar -1- baz|biz")
 		client.Flush()
 	})
@@ -173,17 +171,17 @@ func TestFloatFormatting(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
-	udp.ShouldReceiveOnly(t, "foo:0.0000000000667428|g\n", func() {
+	udp.ShouldReceiveOnly(t, "foo:0.0000000000667428|g", func() {
 		client.Gauge("foo", 6.67428e-11)
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "foo:1.2345678901234567|g\n", func() {
+	udp.ShouldReceiveOnly(t, "foo:1.2345678901234567|g", func() {
 		client.Gauge("foo", 1.234567890123456789)
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "foo:1234567000000000000|g\n", func() {
+	udp.ShouldReceiveOnly(t, "foo:1234567000000000000|g", func() {
 		client.Gauge("foo", 1234567000000000000)
 		client.Flush()
 	})
@@ -192,7 +190,7 @@ func TestFloatFormatting(t *testing.T) {
 func TestBuffer(t *testing.T) {
 	udp.SetAddr(":8125")
 
-	udp.ShouldNotReceive(t, "b:2|c\n", func() {
+	udp.ShouldNotReceive(t, "b:2|c", func() {
 		client := goodClient("", 512)
 		client.Count("a", 1, 1)
 		client.Flush()
@@ -200,7 +198,7 @@ func TestBuffer(t *testing.T) {
 		client.Count("c", 3, 1)
 	})
 
-	udp.ShouldReceiveOnly(t, "a:1|c\nb:2|c\nc:3|c\n", func() {
+	udp.ShouldReceiveOnly(t, "a:1|c\nb:2|c\nc:3|c", func() {
 		client := goodClient("", 512)
 		client.Count("a", 1, 1)
 		client.Count("b", 2, 1)
@@ -221,8 +219,7 @@ four.score.and.seven.years.ago:9|c
 four.score.and.seven.years.ago:10|c
 four.score.and.seven.years.ago:11|c
 four.score.and.seven.years.ago:12|c
-four.score.and.seven.years.ago:13|c
-`
+four.score.and.seven.years.ago:13|c`
 	udp.ShouldReceiveOnly(t, truncatedPacket, func() {
 		client := goodClient("", 512)
 		for i := 0; i < 16; i++ {
@@ -246,8 +243,7 @@ four.score.and.seven.years.ago:11|c
 four.score.and.seven.years.ago:12|c
 four.score.and.seven.years.ago:13|c
 four.score.and.seven.years.ago:14|c
-four.score.and.seven.years.ago:15|c
-`
+four.score.and.seven.years.ago:15|c`
 	udp.ShouldReceiveOnly(t, fullPacket, func() {
 		client := goodClient("", 1024)
 		for i := 0; i < 16; i++ {
@@ -256,7 +252,7 @@ four.score.and.seven.years.ago:15|c
 		client.Flush()
 	})
 
-	udp.ShouldReceiveOnly(t, "a:1|c\n", func() {
+	udp.ShouldReceiveOnly(t, "a:1|c", func() {
 		client := goodClient("", 0)
 		client.Count("a", 1, 1)
 		// No flush needed

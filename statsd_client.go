@@ -119,10 +119,8 @@ func (c *statsdClient) record(sampleRate float64, bucket, value, kind []byte) {
 		c.writeMetric(bucket, value, kind, sampleRateBytes)
 		c.Flush()
 	} else {
-		if c.buffer.Len()+len(bucket)+len(value)+len(kind)+len(sampleRateBytes)+3 > c.PacketSize {
-			if err := c.Flush(); err != nil {
-				return
-			}
+		if c.buffer.Len()+1+len(c.prefix)+len(bucket)+1+len(value)+1+len(kind)+len(sampleRateBytes) > c.PacketSize {
+			c.Flush()
 		}
 		c.writeMetric(bucket, value, kind, sampleRateBytes)
 	}
@@ -132,6 +130,10 @@ func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
 	c.buffer.Lock()
 	defer c.buffer.Unlock()
 
+	if c.buffer.Len() > 0 {
+		c.buffer.WriteRune('\n')
+	}
+
 	c.buffer.Write(c.prefix)
 	c.buffer.Write(bucket)
 	c.buffer.WriteRune(':')
@@ -139,7 +141,6 @@ func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
 	c.buffer.WriteRune('|')
 	c.buffer.Write(kind)
 	c.buffer.Write(sampleRate)
-	c.buffer.WriteRune('\n')
 }
 
 // Flush sends all buffered data to the statsd server, if there is any in the

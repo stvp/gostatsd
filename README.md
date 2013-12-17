@@ -34,7 +34,9 @@ statsd.Gauge("queuesize", 28)
 
 // Timers
 start := time.Now()
-statsd.Timing("methodtime", time.Since(start))
+statsd.Timing("methodtime", float64(time.Since(start))/float64(time.Milliseconds))
+// or
+statsd.TimingDuration("methodtime", time.Since(start))
 ```
 
 If you need to send metrics to different places or want to use different metric
@@ -56,7 +58,7 @@ client.Gauge("queuesize", 28)
 
 // Timers
 start := time.Now()
-client.Timing("methodtime", time.Since(start))
+client.TimingDuration("methodtime", time.Since(start))
 ```
 
 The buffer size (in bytes) can be customized:

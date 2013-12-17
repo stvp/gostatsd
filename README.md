@@ -82,7 +82,7 @@ client := statsd.NewWithPacketSize("127.0.0.1:8125", "my.prefix.", -1)
 Benchmarks
 ==========
 
-November 14, 2013:
+December 17th, 2013, Go 1.2 darwin/amd64
 
 ```
 % go test -bench . --benchmem

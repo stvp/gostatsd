@@ -34,7 +34,8 @@ type Client interface {
 	Flush() error
 	Count(bucket string, value float64, sampleRate float64)
 	Gauge(bucket string, value float64)
-	Timing(bucket string, value time.Duration)
+	Timing(bucket string, value float64)
+	TimingDuration(bucket string, duration time.Duration)
 	CountUnique(bucket string, value string)
 }
 
@@ -76,11 +77,12 @@ func NewWithPacketSize(statsdUrl string, packetSize int) (Client, error) {
 
 type emptyClient struct{}
 
-func (c emptyClient) Flush() error                   { return nil }
-func (c emptyClient) Count(string, float64, float64) {}
-func (c emptyClient) Gauge(string, float64)          {}
-func (c emptyClient) Timing(string, time.Duration)   {}
-func (c emptyClient) CountUnique(string, string)     {}
+func (c emptyClient) Flush() error                         { return nil }
+func (c emptyClient) Count(string, float64, float64)       {}
+func (c emptyClient) Gauge(string, float64)                {}
+func (c emptyClient) Timing(string, float64)               {}
+func (c emptyClient) TimingDuration(string, time.Duration) {}
+func (c emptyClient) CountUnique(string, string)           {}
 
 // -- statsdClient
 
@@ -172,9 +174,15 @@ func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
 // Timing records a time interval (in milliseconds). The percentiles, mean,
 // standard deviation, sum, and lower and upper bounds are calculated by the
 // Statsd server.
-func (c *statsdClient) Timing(bucket string, value time.Duration) {
-	valueString := strconv.FormatFloat(float64(value/time.Millisecond), 'f', -1, 64)
+func (c *statsdClient) Timing(bucket string, value float64) {
+	valueString := strconv.FormatFloat(value, 'f', -1, 64)
 	c.record(1, []byte(bucket), []byte(valueString), TIMING_FLAG)
+}
+
+// TimingDuration is the same as Timing except that it takes a time.Duration
+// value.
+func (c *statsdClient) TimingDuration(bucket string, duration time.Duration) {
+	c.Timing(bucket, float64(duration/time.Millisecond))
 }
 
 // Unique records the number of unique values received between flushes using

@@ -35,9 +35,15 @@ func Gauge(bucket string, value float64) {
 	}
 }
 
-func Timing(bucket string, value time.Duration) {
+func Timing(bucket string, value float64) {
 	if client != nil {
 		client.Timing(bucket, value)
+	}
+}
+
+func TimingDuration(bucket string, duration time.Duration) {
+	if client != nil {
+		client.TimingDuration(bucket, duration)
 	}
 }
 

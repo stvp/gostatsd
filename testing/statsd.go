@@ -25,7 +25,10 @@ func (c *MockStatsdClient) Gauge(bucket string, value float64) {
 	c.Gauges[bucket] = valueString
 }
 
-func (c *MockStatsdClient) Timing(bucket string, value time.Duration) {
+func (c *MockStatsdClient) Timing(bucket string, value float64) {
+}
+
+func (c *MockStatsdClient) TimingDuration(bucket string, value time.Duration) {
 }
 
 func (c *MockStatsdClient) CountUnique(bucket, value string) {

@@ -148,11 +148,11 @@ func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
 // Flush sends all buffered data to the statsd server, if there is any in the
 // buffer, and empties the buffer.
 func (c *statsdClient) Flush() (err error) {
+	c.buffer.Lock()
+	defer c.buffer.Unlock()
 	if c.buffer.Len() > 0 {
-		c.buffer.Lock()
 		_, err = c.buffer.WriteTo(c.conn)
 		c.buffer.Reset()
-		c.buffer.Unlock()
 	}
 	return err
 }

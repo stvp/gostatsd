@@ -121,6 +121,7 @@ func (c *statsdClient) record(sampleRate float64, bucket, value, kind []byte) {
 		c.writeMetric(bucket, value, kind, sampleRateBytes)
 		c.Flush()
 	} else {
+		// FIXME: This is a little nasty.
 		if c.buffer.Len()+1+len(c.prefix)+len(bucket)+1+len(value)+1+len(kind)+len(sampleRateBytes) > c.PacketSize {
 			c.Flush()
 		}
@@ -150,6 +151,7 @@ func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
 func (c *statsdClient) Flush() (err error) {
 	c.buffer.Lock()
 	defer c.buffer.Unlock()
+
 	if c.buffer.Len() > 0 {
 		_, err = c.buffer.WriteTo(c.conn)
 		c.buffer.Reset()

@@ -6,6 +6,8 @@ by the [etsy/statsd](https://github.com/etsy/statsd/) project and automatically
 buffers stats into 512 byte UDP packets. You can customize the packet size, as
 well.
 
+gostatsd is goroutine safe.
+
 [API documentation](http://godoc.org/github.com/stvp/gostatsd)
 
 Usage

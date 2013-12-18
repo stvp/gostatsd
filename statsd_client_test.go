@@ -151,13 +151,8 @@ func TestTimingDuration(t *testing.T) {
 	udp.SetAddr(":8125")
 	client := goodClient("", 512)
 
-	udp.ShouldReceiveOnly(t, "bukkit:250|ms", func() {
-		client.TimingDuration("bukkit", 250*time.Millisecond)
-		client.Flush()
-	})
-
-	udp.ShouldReceiveOnly(t, "bukkit:250000|ms", func() {
-		client.TimingDuration("bukkit", 250*time.Second)
+	udp.ShouldReceiveOnly(t, "bukkit:5.555|ms", func() {
+		client.TimingDuration("bukkit", 5555*time.Microsecond)
 		client.Flush()
 	})
 }

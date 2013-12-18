@@ -184,7 +184,7 @@ func (c *statsdClient) Timing(bucket string, value float64) {
 // TimingDuration is the same as Timing except that it takes a time.Duration
 // value.
 func (c *statsdClient) TimingDuration(bucket string, duration time.Duration) {
-	c.Timing(bucket, float64(duration/time.Millisecond))
+	c.Timing(bucket, float64(duration)/float64(time.Millisecond))
 }
 
 // Unique records the number of unique values received between flushes using

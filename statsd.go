@@ -25,7 +25,7 @@ func Flush() {
 
 func Count(bucket string, value float64, sampleRate float64) {
 	if client != nil {
-		client.Flush()
+		client.Count(bucket, value, sampleRate)
 	}
 }
 

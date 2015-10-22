@@ -1,10 +1,11 @@
 package statsd
 
 import (
-	"github.com/stvp/go-udp-testing"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stvp/go-udp-testing"
 )
 
 // Return a valid client that sends messages to our go-udp-testing server.
@@ -14,13 +15,6 @@ func goodClient(prefix string, packetSize int) Client {
 }
 
 // -- Tests
-
-type parseUrlTestcase struct {
-	url    string
-	host   string
-	prefix string
-	good   bool
-}
 
 func TestNew(t *testing.T) {
 	client, err := New("statsd://broken:9999")
@@ -37,6 +31,37 @@ func TestNew(t *testing.T) {
 	}
 	if reflect.TypeOf(client).String() != "*statsd.statsdClient" {
 		t.Fatal("A good connection should return a statsdClient.")
+	}
+}
+
+func TestParseUrl(t *testing.T) {
+	tests := []struct {
+		url    string
+		host   string
+		prefix string
+		err    bool
+	}{
+		{"", "", "", true},
+		{"x", "", "", true},
+		{"foo.com", "", "", true},
+		{"statsd://a.b.com", "a.b.com", "", false},
+		{"statsd://a.b.com/foo.bar", "a.b.com", "foo.bar.", false},
+		{"statsd://a.b.com/foo.bar.", "a.b.com", "foo.bar.", false},
+	}
+
+	for _, test := range tests {
+		host, prefix, err := parseUrl(test.url)
+		if test.host != host {
+			t.Errorf("expected: %s, got: %s", test.host, host)
+		}
+		if test.prefix != prefix {
+			t.Errorf("expected: %s, got: %s", test.prefix, prefix)
+		}
+		if test.err && err == nil {
+			t.Errorf("expected error, got none")
+		} else if !test.err && err != nil {
+			t.Errorf(err.Error())
+		}
 	}
 }
 

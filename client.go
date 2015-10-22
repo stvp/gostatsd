@@ -66,7 +66,7 @@ func NewWithPacketSize(statsdURL string, packetSize int) (Client, error) {
 		PacketSize: packetSize,
 		conn:       connection,
 		prefix:     []byte(prefix),
-		buffer:     lockableBuffer{},
+		buffer:     bytes.Buffer{},
 	}, nil
 }
 
@@ -100,11 +100,6 @@ func (c emptyClient) CountUnique(string, string)           {}
 
 // -- statsdClient
 
-type lockableBuffer struct {
-	bytes.Buffer
-	sync.Mutex
-}
-
 type statsdClient struct {
 	// Maximum size of sent UDP packets, in bytes. A value of 0 or less will
 	// cause all stats to be sent immediately.
@@ -118,7 +113,9 @@ type statsdClient struct {
 	conn net.Conn
 
 	// Buffer metrics before sending to Statsd as UDP packets.
-	buffer lockableBuffer
+	buffer bytes.Buffer
+
+	sync.Mutex
 }
 
 func (c *statsdClient) record(sampleRate float64, bucket, value, kind []byte) {
@@ -144,8 +141,8 @@ func (c *statsdClient) record(sampleRate float64, bucket, value, kind []byte) {
 }
 
 func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
-	c.buffer.Lock()
-	defer c.buffer.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	if c.buffer.Len() > 0 {
 		c.buffer.WriteRune('\n')
@@ -163,8 +160,8 @@ func (c *statsdClient) writeMetric(bucket, value, kind, sampleRate []byte) {
 // Flush sends all buffered data to the statsd server, if there is any in the
 // buffer, and empties the buffer.
 func (c *statsdClient) Flush() (err error) {
-	c.buffer.Lock()
-	defer c.buffer.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	if c.buffer.Len() > 0 {
 		_, err = c.buffer.WriteTo(c.conn)

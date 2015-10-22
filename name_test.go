@@ -14,7 +14,7 @@ func TestJoin(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		got := Join(test.parts)
+		got := Join(test.parts...)
 		if got != test.expect {
 			t.Errorf("tests[%d]: expected: %#v, got: %#v", i, test.expect, got)
 		}

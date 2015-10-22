@@ -1,8 +1,3 @@
-/*
-The statsd package provides a Statsd client. It supports all commands supported
-by the Etsy statsd server implementation and automatically buffers stats into
-512 byte packets.
-*/
 package statsd
 
 import (
@@ -20,18 +15,19 @@ import (
 
 var (
 	// Regex for sanitizing Unique() values
-	NON_ALPHANUM         = regexp.MustCompile(`[^\w]+`)
-	NON_ALPHANUM_REPLACE = []byte{'_'}
+	nonAlpha        = regexp.MustCompile(`[^\w]+`)
+	nonAlphaReplace = []byte{'_'}
 
 	// Statsd metric type flags
-	GAUGE_FLAG       = []byte{'g'}
-	COUNT_FLAG       = []byte{'c'}
-	TIMING_FLAG      = []byte{'m', 's'}
-	CARDINALITY_FLAG = []byte{'s'}
+	gaugeFlag       = []byte{'g'}
+	countFlag       = []byte{'c'}
+	timingFlag      = []byte{'m', 's'}
+	cardinalityFlag = []byte{'s'}
 )
 
 // -- Client
 
+// Client is a buffered Statsd client.
 type Client interface {
 	Flush() error
 	Count(bucket string, value float64, sampleRate float64)
@@ -42,11 +38,11 @@ type Client interface {
 }
 
 // New is the same as calling NewWithPacketSize with a 512 byte packet size.
-func New(statsdUrl string) (Client, error) {
-	return NewWithPacketSize(statsdUrl, 512)
+func New(statsdURL string) (Client, error) {
+	return NewWithPacketSize(statsdURL, 512)
 }
 
-// NewWithPacketSize creates a new Client that will direct stats to a Statsd
+// NewWithPacketSize returns a new Client that will send stats to a Statsd
 // server. If the given URL has a path component (eg. "/my.prefix"), all metric
 // names will be prepended with that prefix.
 //
@@ -54,14 +50,13 @@ func New(statsdUrl string) (Client, error) {
 // buffered before being sent. A value of 0 or less will cause each stat to be
 // sent immediately, as it is received.
 //
-// If there is an error resolving the host, NewWithPacketSize will return an
-// error as well as a no-op StatsReporter so that code mixed with statsd calls
-// can continue to run without errors.
-func NewWithPacketSize(statsdUrl string, packetSize int) (Client, error) {
+// If the Statsd URL is invalid, a no-op Client will be returned along with an
+// error so that your code can ignore the error, if desired.
+func NewWithPacketSize(statsdURL string, packetSize int) (Client, error) {
 	// Seed random number generator for dealing with sample rates.
 	rand.Seed(time.Now().UnixNano())
 
-	host, prefix, err := parseUrl(statsdUrl)
+	host, prefix, err := parseURL(statsdURL)
 	connection, err := net.DialTimeout("udp", host, time.Second)
 	if err != nil {
 		return &emptyClient{}, err
@@ -75,21 +70,21 @@ func NewWithPacketSize(statsdUrl string, packetSize int) (Client, error) {
 	}, nil
 }
 
-func parseUrl(statsdUrl string) (host, prefix string, err error) {
-	parsedStatsdUrl, err := url.Parse(statsdUrl)
+func parseURL(statsdURL string) (host, prefix string, err error) {
+	parsedStatsdURL, err := url.Parse(statsdURL)
 	if err != nil {
 		return "", "", err
 	}
-	if len(parsedStatsdUrl.Host) == 0 {
-		return "", "", fmt.Errorf("%#v is missing a valid hostname", statsdUrl)
+	if len(parsedStatsdURL.Host) == 0 {
+		return "", "", fmt.Errorf("%#v is missing a valid hostname", statsdURL)
 	}
 
-	prefix = strings.TrimPrefix(parsedStatsdUrl.Path, "/")
+	prefix = strings.TrimPrefix(parsedStatsdURL.Path, "/")
 	if len(prefix) > 0 && prefix[len(prefix)-1] != '.' {
 		prefix = prefix + "."
 	}
 
-	return parsedStatsdUrl.Host, prefix, nil
+	return parsedStatsdURL.Host, prefix, nil
 }
 
 // -- emptyClient
@@ -182,14 +177,14 @@ func (c *statsdClient) Flush() (err error) {
 // stored by statsd.
 func (c *statsdClient) Gauge(bucket string, value float64) {
 	valueString := strconv.FormatFloat(value, 'f', -1, 64)
-	c.record(1, []byte(bucket), []byte(valueString), GAUGE_FLAG)
+	c.record(1, []byte(bucket), []byte(valueString), gaugeFlag)
 }
 
 // Count increments (or decrements) the value in a counter. Counters are
 // recorded and then reset to 0 when Statsd flushes.
 func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
 	valueString := strconv.FormatFloat(value, 'f', -1, 64)
-	c.record(sampleRate, []byte(bucket), []byte(valueString), COUNT_FLAG)
+	c.record(sampleRate, []byte(bucket), []byte(valueString), countFlag)
 }
 
 // Timing records a time interval (in milliseconds). The percentiles, mean,
@@ -197,7 +192,7 @@ func (c *statsdClient) Count(bucket string, value float64, sampleRate float64) {
 // Statsd server.
 func (c *statsdClient) Timing(bucket string, value float64) {
 	valueString := strconv.FormatFloat(value, 'f', -1, 64)
-	c.record(1, []byte(bucket), []byte(valueString), TIMING_FLAG)
+	c.record(1, []byte(bucket), []byte(valueString), timingFlag)
 }
 
 // TimingDuration is the same as Timing except that it takes a time.Duration
@@ -209,6 +204,6 @@ func (c *statsdClient) TimingDuration(bucket string, duration time.Duration) {
 // Unique records the number of unique values received between flushes using
 // Statsd Sets.
 func (c *statsdClient) CountUnique(bucket string, value string) {
-	cleanValue := NON_ALPHANUM.ReplaceAll([]byte(value), NON_ALPHANUM_REPLACE)
-	c.record(1, []byte(bucket), cleanValue, CARDINALITY_FLAG)
+	cleanValue := nonAlpha.ReplaceAll([]byte(value), nonAlphaReplace)
+	c.record(1, []byte(bucket), cleanValue, cardinalityFlag)
 }

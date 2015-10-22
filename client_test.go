@@ -34,7 +34,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestParseUrl(t *testing.T) {
+func TestParseURL(t *testing.T) {
 	tests := []struct {
 		url    string
 		host   string
@@ -50,7 +50,7 @@ func TestParseUrl(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		host, prefix, err := parseUrl(test.url)
+		host, prefix, err := parseURL(test.url)
 		if test.host != host {
 			t.Errorf("expected: %s, got: %s", test.host, host)
 		}
